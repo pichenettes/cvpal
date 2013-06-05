@@ -22,7 +22,7 @@
 #include <util/delay.h>
 #include <string.h>
 
-const uint8_t kPollingInterval = 5;
+const uint8_t kPollingInterval = 2;
 
 extern "C" {
 
