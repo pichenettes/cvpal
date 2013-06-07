@@ -39,7 +39,6 @@ void CalibrationTable::Init(uint8_t table_index) {
     }
     Save();
   }
-  dac_codes_[kCalibrationTableSize] = 4095;  // Guard
 }
 
 void CalibrationTable::Save() {

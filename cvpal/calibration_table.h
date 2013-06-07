@@ -20,7 +20,7 @@
 
 namespace cvpal {
 
-const uint8_t kCalibrationTableSize = 8;
+const uint8_t kCalibrationTableSize = 9;
 
 class CalibrationTable {
  public:
@@ -46,7 +46,7 @@ class CalibrationTable {
   void Save();
    
   uint8_t table_index_;
-  uint16_t dac_codes_[kCalibrationTableSize + 1];
+  uint16_t dac_codes_[kCalibrationTableSize];
 
   DISALLOW_COPY_AND_ASSIGN(CalibrationTable);
 };
