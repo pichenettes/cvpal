@@ -129,3 +129,5 @@ Play a C4 note (MIDI note 72). The target voltage is 3.000V. Use B3 or C#4 to ma
 Play a F#4 note (MIDI note 78). The target voltage is 3.500V. Use F4 or G4 to make adjustments.
 
 Play a C5 note (MIDI note 84). The target voltage is 4.000V. Use B4 or C#5 to make adjustments.
+
+Technical note: to get maximum accuracy, it is recommended to temporarily connect a 100k resistor between the output being calibrated and ground. By doing so, the output protection resistance is taken into account.
