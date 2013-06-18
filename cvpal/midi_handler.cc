@@ -132,67 +132,67 @@ void MidiHandler::Parse(const uint8_t* data, uint8_t size) {
 void MidiHandler::NoteOn(uint8_t channel, uint8_t note, uint8_t velocity) {
   if (velocity == 0) {
     NoteOff(channel, note);
-  }
-  
-  switch (channel) {
-    case 0x00:
-    case 0x01:
-    case 0x02:
-    case 0x03:
-      {
-        uint8_t voice = channel <= 0x02 ? 0 : 1;
-        force_retrigger_[voice] = mono_allocator_[voice].size()
-            && !legato_[voice] ? kRetriggerDuration : 0;
-        mono_allocator_[voice].NoteOn(note, velocity);
-      }
-      break;
+  } else {
+    switch (channel) {
+      case 0x00:
+      case 0x01:
+      case 0x02:
+      case 0x03:
+        {
+          uint8_t voice = channel <= 0x02 ? 0 : 1;
+          force_retrigger_[voice] = mono_allocator_[voice].size()
+              && !legato_[voice] ? kRetriggerDuration : 0;
+          mono_allocator_[voice].NoteOn(note, velocity);
+        }
+        break;
 
-    case 0x04:
-      {
-        uint8_t voice = poly_allocator_.NoteOn(note);
-        force_retrigger_[voice] = active_note_[voice] != 0xff
-            ? kRetriggerDuration : 0;
-        active_note_[voice] = note;
-      }
-      break;
-      
-    case 0x06:
-      rng_state_ = (rng_state_ >> 1) ^ (-(rng_state_ & 1) & 0xb400);
-      random_value_[0] = rng_state_ >> 4;
-      rng_state_ = (rng_state_ >> 1) ^ (-(rng_state_ & 1) & 0xb400);
-      random_value_[1] = rng_state_ >> 4;
-      break;
-      
-    case 0x07:
-    case 0x08:
-    case 0x09:
-      {
-        if (note == 36) {
-          drum_channel_[0].Trigger(velocity);
-        } else if (note == 38) {
-          drum_channel_[1].Trigger(velocity);
+      case 0x04:
+        {
+          uint8_t voice = poly_allocator_.NoteOn(note);
+          force_retrigger_[voice] = active_note_[voice] != 0xff
+              ? kRetriggerDuration : 0;
+          active_note_[voice] = note;
         }
-      }
-      break;
+        break;
       
-    case 0x0e:
-    case 0x0f:
-      {
-        uint8_t calibrated_note = 42;
-        for (uint8_t i = 1; i <= 8; ++i) {
-          if (note == calibrated_note - 1) {
-            calibrated_note_ = calibrated_note;
-            calibration_table_[channel - 0x0e].Adjust(i, -1);
-          } else if (note == calibrated_note + 1) {
-            calibrated_note_ = calibrated_note;
-            calibration_table_[channel - 0x0e].Adjust(i, +1);
-          } else if (note == calibrated_note) {
-            calibrated_note_ = calibrated_note;
+      case 0x06:
+        rng_state_ = (rng_state_ >> 1) ^ (-(rng_state_ & 1) & 0xb400);
+        random_value_[0] = rng_state_ >> 4;
+        rng_state_ = (rng_state_ >> 1) ^ (-(rng_state_ & 1) & 0xb400);
+        random_value_[1] = rng_state_ >> 4;
+        break;
+      
+      case 0x07:
+      case 0x08:
+      case 0x09:
+        {
+          if (note == 36) {
+            drum_channel_[0].Trigger(velocity);
+          } else if (note == 38) {
+            drum_channel_[1].Trigger(velocity);
           }
-          calibrated_note += 6;
         }
-      }
-      break;
+        break;
+      
+      case 0x0e:
+      case 0x0f:
+        {
+          uint8_t calibrated_note = 42;
+          for (uint8_t i = 1; i <= 8; ++i) {
+            if (note == calibrated_note - 1) {
+              calibrated_note_ = calibrated_note;
+              calibration_table_[channel - 0x0e].Adjust(i, -1);
+            } else if (note == calibrated_note + 1) {
+              calibrated_note_ = calibrated_note;
+              calibration_table_[channel - 0x0e].Adjust(i, +1);
+            } else if (note == calibrated_note) {
+              calibrated_note_ = calibrated_note;
+            }
+            calibrated_note += 6;
+          }
+        }
+        break;
+    }
   }
 }
 
