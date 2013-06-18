@@ -17,15 +17,14 @@
 // 
 // Summary of conversion modes
 // 
-// CH1       Mono CV/Gate.
-// CH2       Mono CV/Velocity.
+// CH1       Mono CV/Velocity.
+// CH2       Mono CV/Velocity with DCO.
 // CH3/CH4   Dual CV.
 // CH5       Poly CV.
 // CH6       CC conversion.
 // CH7       Random.
-// CH8       Triggers (gated velocity)
-// CH9       Triggers (plain velocity)
-// CH10      Triggers
+// CH9       Drums with velocity
+// CH10      Drums
 // CH15      Channel 1 calibration
 // CH16      Channel 2 calibration
 
@@ -42,6 +41,7 @@ namespace cvpal {
 
 const uint8_t kNumVoices = 2;
 const uint8_t kRetriggerDuration = 2;
+const uint8_t kNumDrumChannels = 4;
 
 struct State {
   uint16_t cv[kNumVoices];
@@ -74,13 +74,12 @@ class MidiHandler {
 
   void RenderNull();
   void RenderMonoCvGate();
-  void RenderMonoCvVelocityDco();
+  void RenderMonoCvGateWithDco();
   void RenderDualCvGate();
   void RenderPolyCv();
   void RenderCcConversion();
   void RenderRandom();
   void RenderDrumTrigger();
-  void RenderDrumGatedVelocity();
   void RenderDrumVelocity();
   void RenderCalibration();
 
@@ -106,7 +105,7 @@ class MidiHandler {
   VoiceAllocator poly_allocator_;
   uint8_t active_note_[kNumVoices];
   
-  DrumChannel drum_channel_[kNumVoices];
+  DrumChannel drum_channel_[kNumDrumChannels];
   
   State state_;
   

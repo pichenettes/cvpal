@@ -30,13 +30,13 @@ static const uint16_t kFirstDcoNote = 16 << 7;
 /* static */
 const MidiHandler::RenderFn MidiHandler::fn_table_[] PROGMEM = {
   &MidiHandler::RenderMonoCvGate,
-  &MidiHandler::RenderMonoCvVelocityDco,
+  &MidiHandler::RenderMonoCvGateWithDco,
   &MidiHandler::RenderDualCvGate,
   &MidiHandler::RenderDualCvGate,
   &MidiHandler::RenderPolyCv,
   &MidiHandler::RenderCcConversion,
   &MidiHandler::RenderRandom,
-  &MidiHandler::RenderDrumGatedVelocity,
+  &MidiHandler::RenderNull,
   &MidiHandler::RenderDrumVelocity,
   &MidiHandler::RenderDrumTrigger,
   &MidiHandler::RenderNull,
@@ -73,8 +73,9 @@ void MidiHandler::Init() {
   calibration_table_[1].Init(1);
   legato_[0] = false;
   legato_[1] = false;
-  drum_channel_[0].Stop();
-  drum_channel_[1].Stop();
+  for (uint8_t i = 0; i < kNumDrumChannels; ++i) {
+    drum_channel_[i].Stop();
+  }
   
   rng_state_ = 42;
   needs_refresh_ = true;
@@ -86,8 +87,9 @@ void MidiHandler::Init() {
 void MidiHandler::Reset() {
   mono_allocator_[0].Clear();
   mono_allocator_[1].Clear();
-  drum_channel_[0].Stop();
-  drum_channel_[1].Stop();
+  for (uint8_t i = 0; i < kNumDrumChannels; ++i) {
+    drum_channel_[i].Stop();
+  }
   pitch_bend_[0] = 0;
   pitch_bend_[1] = 0;
 }
@@ -162,7 +164,6 @@ void MidiHandler::NoteOn(uint8_t channel, uint8_t note, uint8_t velocity) {
         random_value_[1] = rng_state_ >> 4;
         break;
       
-      case 0x07:
       case 0x08:
       case 0x09:
         {
@@ -170,6 +171,10 @@ void MidiHandler::NoteOn(uint8_t channel, uint8_t note, uint8_t velocity) {
             drum_channel_[0].Trigger(velocity);
           } else if (note == 38) {
             drum_channel_[1].Trigger(velocity);
+          } else if (note == 40) {
+            drum_channel_[2].Trigger(velocity);
+          } else if (note == 46) {
+            drum_channel_[3].Trigger(velocity);
           }
         }
         break;
@@ -222,12 +227,16 @@ void MidiHandler::NoteOff(uint8_t channel, uint8_t note) {
       }
       break;
       
-    case 0x07:
+    case 0x08:
       {
         if (note == 36) {
           drum_channel_[0].Stop();
         } else if (note == 38) {
           drum_channel_[1].Stop();
+        } else if (note == 40) {
+          drum_channel_[2].Stop();
+        } else if (note == 46) {
+          drum_channel_[3].Stop();
         }
       }
       break;
@@ -237,7 +246,7 @@ void MidiHandler::NoteOff(uint8_t channel, uint8_t note) {
 }
 
 void MidiHandler::Tick() {
-  if (most_recent_channel_ >= 0x07 && most_recent_channel_ <= 0x09) {
+  if (most_recent_channel_ >= 0x08 && most_recent_channel_ <= 0x09) {
     drum_channel_[0].Tick();
     drum_channel_[1].Tick();
     needs_refresh_ = true;
@@ -298,20 +307,17 @@ void MidiHandler::RenderNull() {
 
 void MidiHandler::RenderMonoCvGate() {
   if (mono_allocator_[0].size()) {
-    state_.cv[0] = NoteToCv(
-        mono_allocator_[0].most_recent_note().note,
-        pitch_bend_[0],
-        0);
+    int16_t note = mono_allocator_[0].most_recent_note().note;
+    state_.cv[0] = NoteToCv(note, pitch_bend_[0], 0);
+    state_.cv[1] = mono_allocator_[0].most_recent_note().velocity << 5;
     state_.gate[0] = state_.gate[1] = !force_retrigger_[0] || !state_.gate[0];
-    state_.cv[1] = state_.gate[0] ? 4095 : 0;
   } else {
-    state_.cv[1] = 0;
     state_.gate[0] = state_.gate[1] = false;
   }
   state_.dco_frequency = 0;
 }
 
-void MidiHandler::RenderMonoCvVelocityDco() {
+void MidiHandler::RenderMonoCvGateWithDco() {
   if (mono_allocator_[0].size()) {
     int16_t note = mono_allocator_[0].most_recent_note().note;
     state_.cv[0] = NoteToCv(note, pitch_bend_[0], 0);
@@ -389,27 +395,19 @@ void MidiHandler::RenderRandom() {
 }
 
 void MidiHandler::RenderDrumTrigger() {
-  state_.gate[0] = drum_channel_[0].trigger();
-  state_.gate[1] = drum_channel_[1].trigger();
-  state_.cv[0] = state_.gate[0] ? 4095 : 0;
-  state_.cv[1] = state_.gate[1] ? 4095 : 0;
+  state_.cv[0] = drum_channel_[0].trigger() ? 4095 : 0;
+  state_.cv[1] = drum_channel_[1].trigger() ? 4095 : 0;
+  state_.gate[0] = drum_channel_[2].trigger();
+  state_.gate[1] = drum_channel_[3].trigger();
   state_.dco_frequency = 0;
 }
 
 void MidiHandler::RenderDrumVelocity() {
-  RenderDrumTrigger();
   state_.cv[0] = drum_channel_[0].velocity() << 5;
   state_.cv[1] = drum_channel_[1].velocity() << 5;
-}
-
-void MidiHandler::RenderDrumGatedVelocity() {
-  RenderDrumVelocity();
-  if (!drum_channel_[0].gate()) {
-    state_.cv[0] = 0;
-  }
-  if (!drum_channel_[1].gate()) {
-    state_.cv[1] = 0;
-  }
+  state_.gate[0] = drum_channel_[2].gate();
+  state_.gate[1] = drum_channel_[3].gate();
+  state_.dco_frequency = 0;
 }
 
 void MidiHandler::RenderCalibration() {
