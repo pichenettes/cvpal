@@ -76,6 +76,10 @@ OUT 2 = SD (note 38) gate
 Gate 1 = SD2 (note 40) trigger
 Gate 2 = CHH (note 46) trigger
 
+= Channel 11: Drum gates
+
+Same as Channel 10, but with gates instead of triggers.
+
 === Calibration
 
 To ensure accurate note conversion, the CVpal needs to be manually calibrated. A digital multimeter with a precision of at least 3 digits is recommended for this task; but the calibration can also be done with an already calibrated synth or VCO module.

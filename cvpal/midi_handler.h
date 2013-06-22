@@ -81,6 +81,7 @@ class MidiHandler {
   void RenderRandom();
   void RenderDrumTrigger();
   void RenderDrumVelocity();
+  void RenderDrumGate();
   void RenderCalibration();
 
   inline uint16_t NoteToCv(uint8_t base, int16_t bend, uint8_t output_channel) {

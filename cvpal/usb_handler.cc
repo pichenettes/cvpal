@@ -150,7 +150,6 @@ static PROGMEM uint8_t configuration_descriptor[] = {
   1,  // Number of embedded MIDI IN jacks
   1,  // ID of the embedded MIDI IN jacks
 
-
   // Interrupt IN Endpoint Descriptor
   9,  // Size of this descriptor, in bytes
   USBDESCR_ENDPOINT,  // ENDPOINT descriptor
