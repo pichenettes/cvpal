@@ -76,7 +76,7 @@ OUT 2 = SD (note 38) gate
 Gate 1 = SD2 (note 40) trigger
 Gate 2 = CHH (note 46) trigger
 
-= Channel 11: Drum gates
+= Channel 11: Drums gates
 
 Same as Channel 10, but with gates instead of triggers.
 
