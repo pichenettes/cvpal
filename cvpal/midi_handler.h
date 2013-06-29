@@ -25,6 +25,10 @@
 // CH7       Random.
 // CH9       Drums with velocity
 // CH10      Drums
+// CH11      Drums with gate
+// CH12      Mono CV/Gate/Start/Clock 24ppqn
+// CH13      Mono CV/Gate/Start/Clock 4ppqn
+// CH14      Mono CV/Gate/Start/Clock 1ppqn
 // CH15      Channel 1 calibration
 // CH16      Channel 2 calibration
 
@@ -71,10 +75,12 @@ class MidiHandler {
   void NoteOff(uint8_t channel, uint8_t note);
   void ControlChange(uint8_t channel, uint8_t number, uint8_t value);
   void PitchBend(uint8_t channel, uint8_t lsb, uint8_t msb);
+  void RealtimeMessage(uint8_t byte);
 
   void RenderNull();
   void RenderMonoCvGate();
   void RenderMonoCvGateWithDco();
+  void RenderMonoCvGateWithClock();
   void RenderDualCvGate();
   void RenderPolyCv();
   void RenderCcConversion();
@@ -110,6 +116,7 @@ class MidiHandler {
   
   State state_;
   
+  uint8_t clock_counter_;
   uint16_t rng_state_;
   
   static const RenderFn fn_table_[];

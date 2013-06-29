@@ -40,9 +40,9 @@ const MidiHandler::RenderFn MidiHandler::fn_table_[] PROGMEM = {
   &MidiHandler::RenderDrumVelocity,
   &MidiHandler::RenderDrumTrigger,
   &MidiHandler::RenderDrumGate,
-  &MidiHandler::RenderNull,
-  &MidiHandler::RenderNull,
-  &MidiHandler::RenderNull,
+  &MidiHandler::RenderMonoCvGateWithClock,
+  &MidiHandler::RenderMonoCvGateWithClock,
+  &MidiHandler::RenderMonoCvGateWithClock,
   &MidiHandler::RenderCalibration,
   &MidiHandler::RenderCalibration,
 };
@@ -71,8 +71,7 @@ void MidiHandler::Init() {
 
   calibration_table_[0].Init(0);
   calibration_table_[1].Init(1);
-  legato_[0] = false;
-  legato_[1] = false;
+  
   for (uint8_t i = 0; i < kNumDrumChannels; ++i) {
     drum_channel_[i].Stop();
   }
@@ -92,6 +91,9 @@ void MidiHandler::Reset() {
   }
   pitch_bend_[0] = 0;
   pitch_bend_[1] = 0;
+  clock_counter_ = 0;
+  legato_[0] = false;
+  legato_[1] = false;
 }
 
 void MidiHandler::Parse(const uint8_t* data, uint8_t size) {
@@ -124,10 +126,36 @@ void MidiHandler::Parse(const uint8_t* data, uint8_t size) {
         PitchBend(channel, data[2], data[3]);
         most_recent_channel_ = channel;
         break;
+      case 0x0f:
+        RealtimeMessage(data[1]);
+        break;
     }
     size -= 4;
     data += 4;
     needs_refresh_ = true;
+  }
+}
+
+void MidiHandler::RealtimeMessage(uint8_t byte) {
+  if (most_recent_channel_ >= 0x0b && most_recent_channel_ <= 0x0d) {
+    if (byte == 0xf8) {
+      // Clock
+      if (clock_counter_ == 0) {
+        drum_channel_[0].Trigger(0);
+      }
+      ++clock_counter_;
+      if (most_recent_channel_ == 0x0b) {
+        clock_counter_ = 0;
+      } else if (most_recent_channel_ == 0x0c && clock_counter_ >= 6) {
+        clock_counter_ = 0;
+      } else if (most_recent_channel_ == 0x0d && clock_counter_ >= 24) {
+        clock_counter_ = 0;
+      }
+    } else if (byte == 0xfa) {
+      // Start
+      clock_counter_ = 0;
+      drum_channel_[1].Trigger(0);
+    }
   }
 }
 
@@ -140,8 +168,11 @@ void MidiHandler::NoteOn(uint8_t channel, uint8_t note, uint8_t velocity) {
       case 0x01:
       case 0x02:
       case 0x03:
+      case 0x0b:
+      case 0x0c:
+      case 0x0d:
         {
-          uint8_t voice = channel <= 0x02 ? 0 : 1;
+          uint8_t voice = channel == 0x03 ? 1 : 0;
           force_retrigger_[voice] = mono_allocator_[voice].size()
               && !legato_[voice] ? kRetriggerDuration : 0;
           mono_allocator_[voice].NoteOn(note, velocity);
@@ -208,8 +239,11 @@ void MidiHandler::NoteOff(uint8_t channel, uint8_t note) {
     case 0x01:
     case 0x02:
     case 0x03:
+    case 0x0b:
+    case 0x0c:
+    case 0x0d:
       {
-        uint8_t voice = channel <= 0x02 ? 0 : 1;
+        uint8_t voice = channel == 0x03 ? 1 : 0;
         uint8_t top_note = mono_allocator_[voice].most_recent_note().note;
         mono_allocator_[voice].NoteOff(note);
         if (mono_allocator_[voice].size() && 
@@ -229,6 +263,7 @@ void MidiHandler::NoteOff(uint8_t channel, uint8_t note) {
       break;
       
     case 0x08:
+    case 0x09:
     case 0x0a:
       {
         if (note == 36) {
@@ -248,11 +283,10 @@ void MidiHandler::NoteOff(uint8_t channel, uint8_t note) {
 }
 
 void MidiHandler::Tick() {
-  if (most_recent_channel_ >= 0x08 && most_recent_channel_ <= 0x0a) {
-    drum_channel_[0].Tick();
-    drum_channel_[1].Tick();
-    drum_channel_[2].Tick();
-    drum_channel_[3].Tick();
+  if (most_recent_channel_ >= 0x08 && most_recent_channel_ <= 0x0d) {
+    for (uint8_t i = 0; i < kNumDrumChannels; ++i) {
+      drum_channel_[i].Tick();
+    }
     needs_refresh_ = true;
   }
   if (force_retrigger_[0]) {
@@ -272,13 +306,15 @@ void MidiHandler::PitchBend(uint8_t channel, uint8_t lsb, uint8_t msb) {
     case 0x00:
     case 0x01:
     case 0x02:
-    case 0x04:
-      pitch_bend_[0] = value;
-      break;
-      
     case 0x03:
-      pitch_bend_[1] = value;
+    case 0x04:
+    case 0x0b:
+    case 0x0c:
+    case 0x0d:
+      uint8_t voice = channel == 0x03 ? 1 : 0;
+      pitch_bend_[voice] = value;
       break;
+
   }
 }
 
@@ -290,9 +326,9 @@ void MidiHandler::ControlChange(
     if (number >= 1 && number <= 2) {
       control_change_[number - 1] = value;
     }
-  } else if (channel <= 0x03) {
+  } else if (channel <= 0x03 || channel >= 0x0b) {
     if (number == 68) {
-      uint8_t voice = channel <= 0x02 ? 0 : 1;
+      uint8_t voice = channel <= 0x02 || channel >= 0x0b ? 0 : 1;
       legato_[voice] = value >= 64;
     }
   }
@@ -319,6 +355,13 @@ void MidiHandler::RenderMonoCvGate() {
     state_.gate[0] = state_.gate[1] = false;
   }
   state_.dco_frequency = 0;
+}
+
+void MidiHandler::RenderMonoCvGateWithClock() {
+  RenderMonoCvGate();
+  state_.cv[1] = state_.gate[0] ? 4095 : 0;
+  state_.gate[0] = drum_channel_[0].trigger();
+  state_.gate[1] = drum_channel_[1].trigger();
 }
 
 void MidiHandler::RenderMonoCvGateWithDco() {
@@ -428,4 +471,4 @@ void MidiHandler::RenderCalibration() {
   state_.dco_frequency = 0;
 }
 
-}  // namespace cvstsick
+}  // namespace cvpal
