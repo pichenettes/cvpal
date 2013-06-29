@@ -102,7 +102,7 @@ void MidiHandler::Parse(const uint8_t* data, uint8_t size) {
     uint8_t code_index = data[0] & 0xf;
     uint8_t channel = data[1] & 0xf;
     
-    if (channel != most_recent_channel_) {
+    if (code_index != 0x0f && channel != most_recent_channel_) {
       if (!((most_recent_channel_ == 2 && channel == 3) ||
             (most_recent_channel_ == 3 && channel == 2))) {
         Reset();
