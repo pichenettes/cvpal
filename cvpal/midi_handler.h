@@ -27,8 +27,8 @@
 // CH10      Drums
 // CH11      Drums with gate
 // CH12      Mono CV/Gate/Start/Clock 24ppqn
-// CH13      Mono CV/Gate/Start/Clock 4ppqn
-// CH14      Mono CV/Gate/Start/Clock 1ppqn
+// CH13      Mono CV/Gate/Start/Clock 8ppqn
+// CH14      Mono CV/Gate/Start/Clock 4ppqn
 // CH15      Channel 1 calibration
 // CH16      Channel 2 calibration
 

@@ -146,9 +146,9 @@ void MidiHandler::RealtimeMessage(uint8_t byte) {
       ++clock_counter_;
       if (most_recent_channel_ == 0x0b) {
         clock_counter_ = 0;
-      } else if (most_recent_channel_ == 0x0c && clock_counter_ >= 6) {
+      } else if (most_recent_channel_ == 0x0c && clock_counter_ >= 3) {
         clock_counter_ = 0;
-      } else if (most_recent_channel_ == 0x0d && clock_counter_ >= 24) {
+      } else if (most_recent_channel_ == 0x0d && clock_counter_ >= 6) {
         clock_counter_ = 0;
       }
     } else if (byte == 0xfa) {
@@ -452,8 +452,8 @@ void MidiHandler::RenderDrumTrigger() {
 void MidiHandler::RenderDrumVelocity() {
   state_.cv[0] = drum_channel_[0].velocity() << 5;
   state_.cv[1] = drum_channel_[1].velocity() << 5;
-  state_.gate[0] = drum_channel_[2].gate();
-  state_.gate[1] = drum_channel_[3].gate();
+  state_.gate[0] = drum_channel_[0].gate();
+  state_.gate[1] = drum_channel_[1].gate();
   state_.dco_frequency = 0;
 }
 
