@@ -36,7 +36,7 @@ const MidiHandler::RenderFn MidiHandler::fn_table_[] PROGMEM = {
   &MidiHandler::RenderPolyCv,
   &MidiHandler::RenderCcConversion,
   &MidiHandler::RenderRandom,
-  &MidiHandler::RenderNull,
+  &MidiHandler::RenderRandom,
   &MidiHandler::RenderDrumVelocity,
   &MidiHandler::RenderDrumTrigger,
   &MidiHandler::RenderDrumGate,
@@ -323,7 +323,7 @@ void MidiHandler::ControlChange(
     uint8_t number,
     uint8_t value) {
   if (channel == 0x05) {
-    if (number >= 1 && number <= 2) {
+    if (number >= 1 && number <= 4) {
       control_change_[number - 1] = value;
     }
   } else if (channel <= 0x03 || channel >= 0x0b) {
@@ -337,12 +337,11 @@ void MidiHandler::ControlChange(
 void MidiHandler::Render() {
   RenderFn fn;
   memcpy_P(&fn, fn_table_ + most_recent_channel_, sizeof(RenderFn));
+  if (most_recent_channel_ != 1) {
+    state_.dco_frequency = 0;
+  }
   (this->*fn)();
   needs_refresh_ = false;
-}
-
-void MidiHandler::RenderNull() {
-  memset(&state_, 0, sizeof(state_));
 }
 
 void MidiHandler::RenderMonoCvGate() {
@@ -354,7 +353,6 @@ void MidiHandler::RenderMonoCvGate() {
   } else {
     state_.gate[0] = state_.gate[1] = false;
   }
-  state_.dco_frequency = 0;
 }
 
 void MidiHandler::RenderMonoCvGateWithClock() {
@@ -410,7 +408,6 @@ void MidiHandler::RenderDualCvGate() {
       state_.gate[i] = false;
     }
   }
-  state_.dco_frequency = 0;
 }
 
 void MidiHandler::RenderPolyCv() {
@@ -422,15 +419,13 @@ void MidiHandler::RenderPolyCv() {
       state_.gate[i] = false;
     }
   }
-  state_.dco_frequency = 0;
 }
 
 void MidiHandler::RenderCcConversion() {
   state_.cv[0] = control_change_[0] << 5;
   state_.cv[1] = control_change_[1] << 5;
-  state_.gate[0] = control_change_[0] >= 64;
-  state_.gate[1] = control_change_[1] >= 64;
-  state_.dco_frequency = 0;
+  state_.gate[0] = control_change_[2] >= 64;
+  state_.gate[1] = control_change_[3] >= 64;
 }
 
 void MidiHandler::RenderRandom() {
@@ -438,7 +433,6 @@ void MidiHandler::RenderRandom() {
   state_.cv[1] = random_value_[1];
   state_.gate[0] = random_value_[0] & 1;
   state_.gate[1] = random_value_[1] & 1;
-  state_.dco_frequency = 0;
 }
 
 void MidiHandler::RenderDrumTrigger() {
@@ -446,7 +440,6 @@ void MidiHandler::RenderDrumTrigger() {
   state_.cv[1] = drum_channel_[1].trigger() ? 4095 : 0;
   state_.gate[0] = drum_channel_[2].trigger();
   state_.gate[1] = drum_channel_[3].trigger();
-  state_.dco_frequency = 0;
 }
 
 void MidiHandler::RenderDrumVelocity() {
@@ -454,7 +447,6 @@ void MidiHandler::RenderDrumVelocity() {
   state_.cv[1] = drum_channel_[1].velocity() << 5;
   state_.gate[0] = drum_channel_[0].gate();
   state_.gate[1] = drum_channel_[1].gate();
-  state_.dco_frequency = 0;
 }
 
 void MidiHandler::RenderDrumGate() {
@@ -468,7 +460,6 @@ void MidiHandler::RenderCalibration() {
   state_.gate[1] = true;
   state_.cv[0] = NoteToCv(calibrated_note_, 0, 0);
   state_.cv[1] = NoteToCv(calibrated_note_, 0, 1);
-  state_.dco_frequency = 0;
 }
 
 }  // namespace cvpal

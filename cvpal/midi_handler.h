@@ -77,7 +77,6 @@ class MidiHandler {
   void PitchBend(uint8_t channel, uint8_t lsb, uint8_t msb);
   void RealtimeMessage(uint8_t byte);
 
-  void RenderNull();
   void RenderMonoCvGate();
   void RenderMonoCvGateWithDco();
   void RenderMonoCvGateWithClock();
@@ -102,9 +101,9 @@ class MidiHandler {
   CalibrationTable calibration_table_[kNumVoices];
   uint8_t calibrated_note_;
   
-  NoteStack<8> mono_allocator_[kNumVoices];
+  NoteStack<6> mono_allocator_[kNumVoices];
   int16_t pitch_bend_[kNumVoices];
-  uint8_t control_change_[kNumVoices];
+  uint8_t control_change_[4];
   uint16_t random_value_[kNumVoices];
   uint8_t force_retrigger_[kNumVoices];
   bool legato_[kNumVoices];
