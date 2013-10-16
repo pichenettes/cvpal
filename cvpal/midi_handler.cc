@@ -18,7 +18,6 @@
 #include <avr/pgmspace.h>
 
 #include "avrlib/op.h"
-#include "avrlib/random.h"
 
 namespace cvpal {
 
@@ -35,8 +34,8 @@ const MidiHandler::RenderFn MidiHandler::fn_table_[] PROGMEM = {
   &MidiHandler::RenderDualCvGate,
   &MidiHandler::RenderPolyCv,
   &MidiHandler::RenderCcConversion,
-  &MidiHandler::RenderRandom,
-  &MidiHandler::RenderRandom,
+  &MidiHandler::RenderMonoCvGateCc,
+  &MidiHandler::RenderMonoCvGateCc,
   &MidiHandler::RenderDrumVelocity,
   &MidiHandler::RenderDrumTrigger,
   &MidiHandler::RenderDrumGate,
@@ -76,7 +75,6 @@ void MidiHandler::Init() {
     drum_channel_[i].Stop();
   }
   
-  rng_state_ = 42;
   needs_refresh_ = true;
   
   calibrated_note_ = 60;
@@ -94,6 +92,8 @@ void MidiHandler::Reset() {
   clock_counter_ = 0;
   legato_[0] = false;
   legato_[1] = false;
+  control_change_[0] = control_change_[1] = 0;
+  control_change_[2] = control_change_[3] = 0;
 }
 
 void MidiHandler::Parse(const uint8_t* data, uint8_t size) {
@@ -168,6 +168,8 @@ void MidiHandler::NoteOn(uint8_t channel, uint8_t note, uint8_t velocity) {
       case 0x01:
       case 0x02:
       case 0x03:
+      case 0x06:
+      case 0x07:
       case 0x0b:
       case 0x0c:
       case 0x0d:
@@ -186,13 +188,6 @@ void MidiHandler::NoteOn(uint8_t channel, uint8_t note, uint8_t velocity) {
               ? kRetriggerDuration : 0;
           active_note_[voice] = note;
         }
-        break;
-      
-      case 0x06:
-        rng_state_ = (rng_state_ >> 1) ^ (-(rng_state_ & 1) & 0xb400);
-        random_value_[0] = rng_state_ >> 4;
-        rng_state_ = (rng_state_ >> 1) ^ (-(rng_state_ & 1) & 0xb400);
-        random_value_[1] = rng_state_ >> 4;
         break;
       
       case 0x08:
@@ -239,6 +234,8 @@ void MidiHandler::NoteOff(uint8_t channel, uint8_t note) {
     case 0x01:
     case 0x02:
     case 0x03:
+    case 0x06:
+    case 0x07:
     case 0x0b:
     case 0x0c:
     case 0x0d:
@@ -302,30 +299,16 @@ void MidiHandler::Tick() {
 void MidiHandler::PitchBend(uint8_t channel, uint8_t lsb, uint8_t msb) {
   int16_t value = (static_cast<uint16_t>(msb) << 7) + lsb;
   value -= 8192;
-  switch (channel) {
-    case 0x00:
-    case 0x01:
-    case 0x02:
-    case 0x03:
-    case 0x04:
-    case 0x0b:
-    case 0x0c:
-    case 0x0d:
-      uint8_t voice = channel == 0x03 ? 1 : 0;
-      pitch_bend_[voice] = value;
-      break;
-
-  }
+  uint8_t voice = channel == 0x03 ? 1 : 0;
+  pitch_bend_[voice] = value;
 }
 
 void MidiHandler::ControlChange(
     uint8_t channel,
     uint8_t number,
     uint8_t value) {
-  if (channel == 0x05) {
-    if (number >= 1 && number <= 4) {
-      control_change_[number - 1] = value;
-    }
+  if (number >= 1 && number <= 4) {
+    control_change_[number - 1] = value;
   } else if (channel <= 0x03 || channel >= 0x0b) {
     if (number == 68) {
       uint8_t voice = channel <= 0x02 || channel >= 0x0b ? 0 : 1;
@@ -428,18 +411,9 @@ void MidiHandler::RenderCcConversion() {
   state_.gate[1] = control_change_[3] >= 64;
 }
 
-void MidiHandler::RenderRandom() {
-  state_.cv[0] = random_value_[0];
-  state_.cv[1] = random_value_[1];
-  state_.gate[0] = random_value_[0] & 1;
-  state_.gate[1] = random_value_[1] & 1;
-}
-
-void MidiHandler::RenderDrumTrigger() {
-  state_.cv[0] = drum_channel_[0].trigger() ? 4095 : 0;
-  state_.cv[1] = drum_channel_[1].trigger() ? 4095 : 0;
-  state_.gate[0] = drum_channel_[2].trigger();
-  state_.gate[1] = drum_channel_[3].trigger();
+void MidiHandler::RenderMonoCvGateCc() {
+  RenderMonoCvGate();
+  state_.cv[1] = control_change_[most_recent_channel_ - 6] << 5;
 }
 
 void MidiHandler::RenderDrumVelocity() {
@@ -449,10 +423,18 @@ void MidiHandler::RenderDrumVelocity() {
   state_.gate[1] = drum_channel_[1].gate();
 }
 
+void MidiHandler::RenderDrumTrigger() {
+  state_.cv[0] = drum_channel_[0].trigger() ? 4095 : 0;
+  state_.cv[1] = drum_channel_[1].trigger() ? 4095 : 0;
+  state_.gate[0] = drum_channel_[2].trigger();
+  state_.gate[1] = drum_channel_[3].trigger();
+}
+
 void MidiHandler::RenderDrumGate() {
-  RenderDrumVelocity();
   state_.cv[0] = drum_channel_[0].gate() ? 4095 : 0;
   state_.cv[1] = drum_channel_[1].gate() ? 4095 : 0;
+  state_.gate[0] = drum_channel_[2].gate();
+  state_.gate[1] = drum_channel_[3].gate();
 }
 
 void MidiHandler::RenderCalibration() {

@@ -22,8 +22,9 @@
 // CH3/CH4   Dual CV.
 // CH5       Poly CV.
 // CH6       CC conversion.
-// CH7       Random.
-// CH9       Drums with velocity
+// CH7       Mono CV/Gate with CC0 (undocumented)
+// CH8       Mono CV/Gate with CC1 (undocumented)
+// CH9       Drums 36/38 with velocity (undocumented)
 // CH10      Drums
 // CH11      Drums with gate
 // CH12      Mono CV/Gate/Start/Clock 24ppqn
@@ -83,9 +84,9 @@ class MidiHandler {
   void RenderDualCvGate();
   void RenderPolyCv();
   void RenderCcConversion();
-  void RenderRandom();
-  void RenderDrumTrigger();
+  void RenderMonoCvGateCc();
   void RenderDrumVelocity();
+  void RenderDrumTrigger();
   void RenderDrumGate();
   void RenderCalibration();
 
@@ -116,7 +117,6 @@ class MidiHandler {
   State state_;
   
   uint8_t clock_counter_;
-  uint16_t rng_state_;
   
   static const RenderFn fn_table_[];
   
