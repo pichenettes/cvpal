@@ -332,7 +332,7 @@ void MidiHandler::RenderMonoCvGate() {
     int16_t note = mono_allocator_[0].most_recent_note().note;
     state_.cv[0] = NoteToCv(note, pitch_bend_[0], 0);
     state_.cv[1] = mono_allocator_[0].most_recent_note().velocity << 5;
-    state_.gate[0] = state_.gate[1] = !force_retrigger_[0] || !state_.gate[0];
+    state_.gate[0] = state_.gate[1] = !force_retrigger_[0];
   } else {
     state_.gate[0] = state_.gate[1] = false;
   }
@@ -350,7 +350,7 @@ void MidiHandler::RenderMonoCvGateWithDco() {
     int16_t note = mono_allocator_[0].most_recent_note().note;
     state_.cv[0] = NoteToCv(note, pitch_bend_[0], 0);
     state_.cv[1] = mono_allocator_[0].most_recent_note().velocity << 5;
-    state_.gate[1] = !force_retrigger_[0] || !state_.gate[0];
+    state_.gate[1] = !force_retrigger_[0];
     
     note <<= 7;
     note += pitch_bend_[0] >> 5;
@@ -386,7 +386,7 @@ void MidiHandler::RenderDualCvGate() {
           mono_allocator_[i].most_recent_note().note,
           pitch_bend_[i],
           i);
-      state_.gate[i] = !force_retrigger_[i] || !state_.gate[i];
+      state_.gate[i] = !force_retrigger_[i];
     } else {
       state_.gate[i] = false;
     }
