@@ -26,7 +26,7 @@ const uint8_t kPollingInterval = 1;
 
 extern "C" {
 
-static PROGMEM uint8_t device_descriptor[] = {
+const static PROGMEM uint8_t device_descriptor[] = {
   0x12,  // Size of this descriptor, in bytes.
   USBDESCR_DEVICE,  // DEVICE descriptor
   0x10, 0x01,  // 1.10 - current revision of USB specification
@@ -44,7 +44,7 @@ static PROGMEM uint8_t device_descriptor[] = {
 };
 
 // http://www.usb.org/developers/devclass_docs/midi10.pdf
-static PROGMEM uint8_t configuration_descriptor[] = {
+const static PROGMEM uint8_t configuration_descriptor[] = {
   // USB configuration descriptor 
   9,  // Size of this descriptor, in bytes.
   USBDESCR_CONFIG,  // CONFIGURATION descriptor
