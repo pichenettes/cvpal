@@ -175,17 +175,19 @@ void MidiHandler::NoteOn(uint8_t channel, uint8_t note, uint8_t velocity) {
       case 0x0d:
         {
           uint8_t voice = channel == 0x03 ? 1 : 0;
-          force_retrigger_[voice] = mono_allocator_[voice].size()
-              && !legato_[voice] ? kRetriggerDuration : 0;
           mono_allocator_[voice].NoteOn(note, velocity);
+          if (state_.gate[channel == 0x01 ? 1 : voice] && !legato_[voice]) {
+            force_retrigger_[voice] = kRetriggerDuration;
+          }
         }
         break;
 
       case 0x04:
         {
           uint8_t voice = poly_allocator_.NoteOn(note);
-          force_retrigger_[voice] = active_note_[voice] != 0xff
-              ? kRetriggerDuration : 0;
+          if (state_.gate[voice] && !legato_[voice]) {
+            force_retrigger_[voice] = kRetriggerDuration;
+          }
           active_note_[voice] = note;
         }
         break;
