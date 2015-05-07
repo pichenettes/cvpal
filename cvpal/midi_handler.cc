@@ -35,7 +35,7 @@ const MidiHandler::RenderFn MidiHandler::fn_table_[] PROGMEM = {
   &MidiHandler::RenderPolyCv,
   &MidiHandler::RenderCcConversion,
   &MidiHandler::RenderMonoCvGateCc,
-  &MidiHandler::RenderMonoCvGateCc,
+  &MidiHandler::RenderMonoCvGateWithAccentAndSlide,
   &MidiHandler::RenderDrumVelocity,
   &MidiHandler::RenderDrumTrigger,
   &MidiHandler::RenderDrumGate,
@@ -334,6 +334,17 @@ void MidiHandler::RenderMonoCvGate() {
     int16_t note = mono_allocator_[0].most_recent_note().note;
     state_.cv[0] = NoteToCv(note, pitch_bend_[0], 0);
     state_.cv[1] = mono_allocator_[0].most_recent_note().velocity << 5;
+    state_.gate[0] = state_.gate[1] = !force_retrigger_[0];
+  } else {
+    state_.gate[0] = state_.gate[1] = false;
+  }
+}
+
+void MidiHandler::RenderMonoCvGateWithAccentAndSlide() {
+  if (mono_allocator_[0].size()) {
+    int16_t note = mono_allocator_[0].most_recent_note().note;
+    state_.cv[0] = NoteToCv(note, pitch_bend_[0], 0);
+    state_.cv[1] = mono_allocator_[0].most_recent_note().velocity >= 64 ? 4095 : 0;
     state_.gate[0] = state_.gate[1] = !force_retrigger_[0];
   } else {
     state_.gate[0] = state_.gate[1] = false;
