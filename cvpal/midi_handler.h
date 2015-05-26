@@ -109,6 +109,7 @@ class MidiHandler {
   uint16_t random_value_[kNumVoices];
   uint8_t force_retrigger_[kNumVoices];
   bool legato_[kNumVoices];
+  bool slide_[kNumVoices];
 
   VoiceAllocator poly_allocator_;
   uint8_t active_note_[kNumVoices];
