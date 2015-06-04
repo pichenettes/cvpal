@@ -23,7 +23,7 @@
 // CH5       Poly CV.
 // CH6       CC conversion.
 // CH7       Mono CV/Gate with CC0 (undocumented)
-// CH8       Mono CV/Gate with CC1 (undocumented)
+// CH8       Mono CV/Gate with accent and slide (unfinished and undocumented)
 // CH9       Drums 36/38 with velocity (undocumented)
 // CH10      Drums
 // CH11      Drums with gate
@@ -85,6 +85,7 @@ class MidiHandler {
   void RenderPolyCv();
   void RenderCcConversion();
   void RenderMonoCvGateCc();
+  void RenderMonoCvGateWithAccentAndSlide();
   void RenderDrumVelocity();
   void RenderDrumTrigger();
   void RenderDrumGate();
@@ -108,6 +109,7 @@ class MidiHandler {
   uint16_t random_value_[kNumVoices];
   uint8_t force_retrigger_[kNumVoices];
   bool legato_[kNumVoices];
+  bool slide_[kNumVoices];
 
   VoiceAllocator poly_allocator_;
   uint8_t active_note_[kNumVoices];

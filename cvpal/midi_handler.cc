@@ -35,7 +35,7 @@ const MidiHandler::RenderFn MidiHandler::fn_table_[] PROGMEM = {
   &MidiHandler::RenderPolyCv,
   &MidiHandler::RenderCcConversion,
   &MidiHandler::RenderMonoCvGateCc,
-  &MidiHandler::RenderMonoCvGateCc,
+  &MidiHandler::RenderMonoCvGateWithAccentAndSlide,
   &MidiHandler::RenderDrumVelocity,
   &MidiHandler::RenderDrumTrigger,
   &MidiHandler::RenderDrumGate,
@@ -92,6 +92,8 @@ void MidiHandler::Reset() {
   clock_counter_ = 0;
   legato_[0] = false;
   legato_[1] = false;
+  slide_[0] = false;
+  slide_[1] = false;
   control_change_[0] = control_change_[1] = 0;
   control_change_[2] = control_change_[3] = 0;
 }
@@ -169,7 +171,6 @@ void MidiHandler::NoteOn(uint8_t channel, uint8_t note, uint8_t velocity) {
       case 0x02:
       case 0x03:
       case 0x06:
-      case 0x07:
       case 0x0b:
       case 0x0c:
       case 0x0d:
@@ -189,6 +190,16 @@ void MidiHandler::NoteOn(uint8_t channel, uint8_t note, uint8_t velocity) {
             force_retrigger_[voice] = kRetriggerDuration;
           }
           active_note_[voice] = note;
+        }
+        break;
+
+      case 0x07:
+        {
+          uint8_t voice = 0;
+          mono_allocator_[voice].NoteOn(note, velocity);
+          if (state_.gate[voice]) {
+            slide_[voice] = true;
+          }
         }
         break;
       
@@ -237,7 +248,6 @@ void MidiHandler::NoteOff(uint8_t channel, uint8_t note) {
     case 0x02:
     case 0x03:
     case 0x06:
-    case 0x07:
     case 0x0b:
     case 0x0c:
     case 0x0d:
@@ -260,6 +270,24 @@ void MidiHandler::NoteOff(uint8_t channel, uint8_t note) {
         }
       }
       break;
+
+    case 0x07:
+      {
+        uint8_t voice = 0;
+        uint8_t top_note = mono_allocator_[voice].most_recent_note().note;
+        mono_allocator_[voice].NoteOff(note);
+        if (mono_allocator_[voice].size()) {
+          if (mono_allocator_[voice].most_recent_note().note != top_note) {
+            slide_[voice] = 1;
+          } else {
+            slide_[voice] = 0;
+          }
+        } else {
+          slide_[voice] = 0;
+        }      
+      }
+      break;
+
       
     case 0x08:
     case 0x09:
@@ -335,6 +363,18 @@ void MidiHandler::RenderMonoCvGate() {
     state_.cv[0] = NoteToCv(note, pitch_bend_[0], 0);
     state_.cv[1] = mono_allocator_[0].most_recent_note().velocity << 5;
     state_.gate[0] = state_.gate[1] = !force_retrigger_[0];
+  } else {
+    state_.gate[0] = state_.gate[1] = false;
+  }
+}
+
+void MidiHandler::RenderMonoCvGateWithAccentAndSlide() {
+  if (mono_allocator_[0].size()) {
+    int16_t note = mono_allocator_[0].most_recent_note().note;
+    state_.cv[0] = NoteToCv(note, pitch_bend_[0], 0);
+    state_.cv[1] = mono_allocator_[0].most_recent_note().velocity >= 100 ? 4095 : 0;
+    state_.gate[0] = !force_retrigger_[0];
+    state_.gate[1] = slide_[0];
   } else {
     state_.gate[0] = state_.gate[1] = false;
   }

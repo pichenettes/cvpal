@@ -1,4 +1,5 @@
 CVpal, a cheap and cheerful USB to CV/Gate interface.
+An additional CVpal mode, a x0x heart control, is in progress to replace Channel 8. Channel 8 was originally MonoCV/Gate with CC conversion of CC02.
 
 Original developer: Olivier Gillet (ol.gillet@gmail.com)
 
