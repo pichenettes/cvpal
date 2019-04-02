@@ -1,6 +1,6 @@
 CVpal, a cheap and cheerful USB to CV/Gate interface.
 
-Original developer: Olivier Gillet (ol.gillet@gmail.com)
+Original developer: Emilie Gillet (emilie.o.gillet@gmail.com)
 
 The firmware is released under a GPL3.0 license. It uses Objective Development's
 V-USB virtual USB library.
